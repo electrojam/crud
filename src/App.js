@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { isEmpty, size} from 'lodash'
 import shortid from 'shortid'
+import { getCollection } from './actions'
 
 function App() {
   const [task, setTask] = useState("")
@@ -8,6 +9,13 @@ function App() {
   const [editMode, setEditMode] = useState(false)
   const [id, setId] = useState("")
   const [error, setError] = useState(null)
+
+  useEffect(() => {  //el useEffect va a jeecutar cuando cargue la página
+    (async () => {
+      const result = await getCollection("tasks") //traiga la data de la colección "tasks" de firebase
+      console.log(result)
+    })() //()() quiere decir método asíncrono autoejecutable
+  }, [])  // [] los corchetes es un arreglo vacío quiere decir que el método ejecuta cuando la página cargue
 
   const validForm = () => {  //método para validar el formulario si está vacío
     let isValid = true
