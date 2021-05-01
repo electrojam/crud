@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { isEmpty, size} from 'lodash'
-import shortid from 'shortid'
-import { getCollection } from './actions'
+import { addDocument, deleteDocument, getCollection, updateDocument } from './actions'
 
 function App() {
   const [task, setTask] = useState("")
@@ -13,7 +12,9 @@ function App() {
   useEffect(() => {  //el useEffect va a jeecutar cuando cargue la página
     (async () => {
       const result = await getCollection("tasks") //traiga la data de la colección "tasks" de firebase
-      console.log(result)
+      if (result.statusResponse) { //antes de asignar la tarea pregunta si la operación fue exitosa
+        setTasks(result.data) //permite imprimir en pantalla las tres colecciones de tareas
+      }
     })() //()() quiere decir método asíncrono autoejecutable
   }, [])  // [] los corchetes es un arreglo vacío quiere decir que el método ejecuta cuando la página cargue
 
@@ -29,26 +30,33 @@ function App() {
     return isValid
   }
 
-  const addTask = (e) => {
+  const addTask = async(e) => {
     e.preventDefault() //evita recargar página botón submit
     
     if (!validForm()) {  //hace consulta si el formulario no es válido se sale con el return. si el formulario es válido pasa a generar un id único para tare
       return
     }
 
-    const newTask = {   //objeto para generar un id único para cada tarea
-      id: shortid.generate(),
-      name: task
+    const result = await addDocument("tasks", { name: task })  //consultamos base de datos, adicionamos tarea a la colleción tasks, el nombre es lo que el usuario digitó en la variable task
+    if (!result.statusResponse)  { //preguntamos si no hubo resultado, si hubo algún error en la consulta
+      setError(result.error)
+      return
     }
     
-    setTasks([ ...tasks, newTask ])  //método para agregar una tarea a la collección de task spread operator
+    setTasks([ ...tasks, { id: result.data.id, name: task } ])  //método para agregar en memoria una tarea a la collección de task spread operator
     setTask("")  //borra cajón texto para que quede lista para agregar otra tarea
   }
 
-const saveTask = (e) => {
+const saveTask = async(e) => {  //método para guardar tarea
   e.preventDefault()
 
   if (!validForm()) {  //hace consulta si el formulario no es válido se sale con el return. si el formulario es válido pasa a guardar tarea
+    return
+  }
+
+  const result = await updateDocument("tasks", id, { name: task }) //método que actualiza documento en collección tasks, con id que está en memoria, la data con nombre task
+  if (!result.statusResponse) {  //si no hubo statusReponse positivo, es decir si hay algún error en método updateDocument entonces devuelva variable error
+    setError(result.error)
     return
   }
 
@@ -59,7 +67,13 @@ const saveTask = (e) => {
   setId("")
 }
 
-  const deleteTask = (id) => {  //función para borrar tarea
+  const deleteTask = async(id) => {  //función para borrar tarea
+    const result = await deleteDocument("tasks", id)
+    if (!result.statusResponse) {
+      setError(result.error)
+      return
+    }
+    
     const filteredTasks = tasks.filter(task => task.id != id)//método para filtrar las tareas, menos la tarea borrada
     setTasks(filteredTasks)
   }
